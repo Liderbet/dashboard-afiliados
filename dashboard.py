@@ -2,6 +2,32 @@ import streamlit as st
 import pandas as pd
 import requests
 
+# Configurações de login
+USUARIO_CORRETO = "eric"
+SENHA_CORRETA = "Lider@2025"
+
+# Sessão de autenticação
+def autenticar():
+    st.title("🔐 Login necessário")
+    usuario = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
+
+    if st.button("Entrar"):
+        if usuario == USUARIO_CORRETO and senha == SENHA_CORRETA:
+            st.success("Login realizado com sucesso!")
+            st.session_state["autenticado"] = True
+        else:
+            st.error("Usuário ou senha incorretos.")
+
+# Verifica se o usuário está autenticado
+if "autenticado" not in st.session_state:
+    st.session_state["autenticado"] = False
+
+if not st.session_state["autenticado"]:
+    autenticar()
+    st.stop()
+
+# Conteúdo principal da dashboard
 st.title("📈 Dashboard de Afiliados - Logame Analytics")
 
 # Filtros na barra lateral
@@ -16,7 +42,6 @@ mark = "liderbet"
 if st.sidebar.button("🔍 Consultar API"):
     with st.spinner("Consultando dados..."):
 
-        # Parâmetros da API
         params = {
             "start_date": start_date,
             "end_date": end_date,
@@ -26,7 +51,6 @@ if st.sidebar.button("🔍 Consultar API"):
         if affiliate_id:
             params["affiliate_id"] = affiliate_id
 
-        # URL da API
         url = "https://api-logame-analytics.logame.app/api/affiliate-report"
         response = requests.get(url, params=params)
 
@@ -38,7 +62,6 @@ if st.sidebar.button("🔍 Consultar API"):
                 st.success("Dados carregados com sucesso!")
                 st.dataframe(df)
 
-                # Gráfico básico se houver dados numéricos
                 colunas_numericas = df.select_dtypes(include='number').columns.tolist()
                 if colunas_numericas:
                     st.subheader("📊 Gráfico de colunas")
