@@ -8,7 +8,7 @@ st.title("📈 Dashboard de Afiliados - Logame Analytics")
 st.sidebar.header("Filtros")
 start_date = st.sidebar.date_input("Data Inicial")
 end_date = st.sidebar.date_input("Data Final")
-campaing_name = st.sidebar.text_input("Nome da campanha", "minha-campanha")
+campaing_name = st.sidebar.text_input("Nome da campanha", "")
 affiliate_id = st.sidebar.text_input("Affiliate ID (opcional)", "")
 mark = "liderbet"
 
