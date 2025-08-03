@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
+from datetime import datetime
 
 st.set_page_config(page_title="Dashboard Pública - Logame", layout="wide")
 st.title("📈 Dashboard Pública - Afiliados Logame Analytics")
@@ -9,7 +11,7 @@ st.title("📈 Dashboard Pública - Afiliados Logame Analytics")
 st.sidebar.header("Filtros")
 start_date = st.sidebar.date_input("Data Inicial")
 end_date = st.sidebar.date_input("Data Final")
-campaing_name = st.sidebar.text_input("Nome da campanha", "minha-campanha")
+campaing_name = st.sidebar.text_input("Nome da campanha", "")
 affiliate_id = st.sidebar.text_input("Affiliate ID (opcional)", "")
 mark = "liderbet"
 
@@ -60,6 +62,20 @@ if st.sidebar.button("🔍 Consultar API"):
                 # TABELA
                 st.subheader("📋 Tabela de Dados")
                 st.dataframe(df)
+
+                # EXPORTAÇÃO PARA EXCEL
+                st.subheader("📥 Exportar")
+                excel_buffer = io.BytesIO()
+                df.to_excel(excel_buffer, index=False, engine='openpyxl')
+                excel_buffer.seek(0)
+
+                nome_arquivo = f"relatorio_logame_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                st.download_button(
+                    label="📥 Baixar Excel",
+                    data=excel_buffer,
+                    file_name=nome_arquivo,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
 
                 # GRÁFICO
                 if colunas_numericas:
