@@ -6,8 +6,8 @@ import pytz
 from datetime import datetime, timedelta
 
 # ======== ESCOLHA DE LAYOUT ========
-params = st.experimental_get_query_params()
-layout_param = params.get("layout", [None])[0]
+params = st.query_params
+layout_param = params.get("layout", "desktop")
 
 if layout_param not in ["desktop", "mobile"]:
     st.title("🎯 Escolha o Layout")
@@ -15,12 +15,12 @@ if layout_param not in ["desktop", "mobile"]:
     col1, col2 = st.columns(2)
     with col1:
         if st.button("💻 Versão Desktop"):
-            st.experimental_set_query_params(layout="desktop")
-            st.experimental_rerun()
+            st.query_params["layout"] = "desktop"
+            st.rerun()
     with col2:
         if st.button("📱 Versão Mobile"):
-            st.experimental_set_query_params(layout="mobile")
-            st.experimental_rerun()
+            st.query_params["layout"] = "mobile"
+            st.rerun()
 
     st.stop()
 
