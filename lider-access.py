@@ -5,15 +5,35 @@ import io
 import pytz
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Dashboard Pública - Afiliados", layout="wide")
+# ======== ESCOLHA DE LAYOUT ========
+params = st.experimental_get_query_params()
+layout_param = params.get("layout", [None])[0]
 
+if layout_param not in ["desktop", "mobile"]:
+    st.title("🎯 Escolha o Layout")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("💻 Versão Desktop"):
+            st.experimental_set_query_params(layout="desktop")
+            st.experimental_rerun()
+    with col2:
+        if st.button("📱 Versão Mobile"):
+            st.experimental_set_query_params(layout="mobile")
+            st.experimental_rerun()
+
+    st.stop()
+
+layout_final = "wide" if layout_param == "desktop" else "centered"
+st.set_page_config(page_title="Dashboard Logame", layout=layout_final)
+
+# ======== CABEÇALHO ========
 st.title("📊 Dashboard Pública - Logame Analytics")
 
-# Timezone Brasil
 fuso_brasilia = pytz.timezone("America/Sao_Paulo")
 hoje = datetime.now(fuso_brasilia).date()
 
-# Filtros
+# ======== FILTROS ========
 st.sidebar.header("Filtros de Período")
 opcao_periodo = st.sidebar.radio(
     "Escolha o intervalo:",
@@ -36,12 +56,16 @@ else:
     data_inicial = st.sidebar.date_input("Data Inicial", value=hoje - timedelta(days=7))
     data_final = st.sidebar.date_input("Data Final", value=hoje)
 
-# Campos dinâmicos
 affiliate_id = st.sidebar.text_input("Affiliate ID", value="468543")
 campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
 mark = "liderbet"
 
-# Estado anterior dos filtros para evitar recarga desnecessária
+# Previne erro de API sem parâmetros obrigatórios
+if not affiliate_id and not campaing_name:
+    st.warning("⚠️ Informe pelo menos um Affiliate ID ou uma Campanha.")
+    st.stop()
+
+# ======== BOTÃO MANUAL E CACHE ========
 if "filtros_anteriores" not in st.session_state:
     st.session_state.filtros_anteriores = {}
 
@@ -53,10 +77,8 @@ filtros_atuais = {
     "mark": mark,
 }
 
-# Botão de atualização
 atualizar = st.button("🔄 Atualizar agora")
 
-# Função com cache
 @st.cache_data(show_spinner=False)
 def consultar_api(params):
     url = "https://api-logame-analytics.logame.app/api/affiliate-report"
@@ -66,46 +88,33 @@ def consultar_api(params):
     else:
         return pd.DataFrame()
 
-# Verifica se deve atualizar
-filtros_diferentes = filtros_atuais != st.session_state.filtros_anteriores
+filtros_diferentes = filtros_atuais != st.session_state["filtros_anteriores"]
 if atualizar or filtros_diferentes:
-    st.session_state.filtros_anteriores = filtros_atuais
+    st.session_state["filtros_anteriores"] = filtros_atuais
     with st.spinner("🔄 Consultando API..."):
         df = consultar_api(filtros_atuais)
 else:
-    df = consultar_api(st.session_state.filtros_anteriores)
+    df = consultar_api(st.session_state["filtros_anteriores"])
 
-# Exibição
+# ======== EXIBIÇÃO DE RESULTADOS ========
 st.caption(f"🗓️ Período: `{data_inicial}` a `{data_final}`")
 st.caption(f"🧾 Afiliado: `{affiliate_id}` | Marca: `{mark}`")
 
 if not df.empty:
     st.success("✅ Dados carregados com sucesso!")
 
-    # TOTALIZADORES
     st.subheader("📌 Totais")
     colunas_numericas = df.select_dtypes(include='number').columns.tolist()
     if colunas_numericas:
-        totais = df[colunas_numericas].sum()
-        col1, col2, col3, col4 = st.columns(4)
-        for i, coluna in enumerate(totais.index):
-            valor = totais[coluna]
+        for coluna in colunas_numericas:
+            valor = df[coluna].sum()
             valor_formatado = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            if i % 4 == 0:
-                col1.metric(coluna, valor_formatado)
-            elif i % 4 == 1:
-                col2.metric(coluna, valor_formatado)
-            elif i % 4 == 2:
-                col3.metric(coluna, valor_formatado)
-            elif i % 4 == 3:
-                col4.metric(coluna, valor_formatado)
+            st.metric(coluna, valor_formatado)
 
-    # TABELA
     st.subheader("📋 Tabela de Dados")
-    st.dataframe(df)
+    st.dataframe(df, use_container_width=True)
 
-    # EXPORTAÇÃO
-    st.subheader("📥 Exportar")
+    st.subheader("📥 Exportar para Excel")
     excel_buffer = io.BytesIO()
     df.to_excel(excel_buffer, index=False, engine='openpyxl')
     excel_buffer.seek(0)
@@ -116,10 +125,5 @@ if not df.empty:
         file_name=nome_arquivo,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
-    # GRÁFICO
-    if colunas_numericas:
-        st.subheader("📊 Gráfico de Colunas")
-        st.bar_chart(df[colunas_numericas])
 else:
-    st.warning("⚠ Nenhum dado encontrado.")
+    st.warning("⚠ Nenhum dado encontrado para os filtros informados.")
