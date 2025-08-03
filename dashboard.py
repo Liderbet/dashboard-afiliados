@@ -63,7 +63,7 @@ else:
     data_inicial = st.sidebar.date_input("Data Inicial", value=hoje - timedelta(days=7))
     data_final = st.sidebar.date_input("Data Final", value=hoje)
 
-# Afiliado fixo atualizado
+# Afiliado fixo
 affiliate_id = "464361"
 mark = "liderbet"
 campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
@@ -72,10 +72,14 @@ campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
 st.caption(f"🗓️ Período: `{data_inicial}` a `{data_final}`")
 st.caption(f"🔗 Afiliado fixo: `{affiliate_id}` | Marca: `{mark}`")
 
-# Botão manual e atualização automática
+# Botão manual e controle de tempo
 atualizar_manual = st.button("🔄 Atualizar agora")
-tempo_restante = st.empty()
-rodar = atualizar_manual or st.session_state.get("ultimo_update", 0) + 60 < time.time()
+
+# Verifica se deve atualizar
+if "ultimo_update" not in st.session_state:
+    st.session_state["ultimo_update"] = 0
+
+rodar = atualizar_manual or (time.time() - st.session_state["ultimo_update"] > 60)
 
 # Consulta à API
 if rodar:
@@ -145,8 +149,6 @@ if rodar:
         else:
             st.error(f"❌ Erro {response.status_code}: {response.text}")
 
-# Contador de autoatualização
-for i in range(60, 0, -1):
-    tempo_restante.markdown(f"⏳ Atualizando em **{i} segundos**... ou clique em **🔄 Atualizar agora**")
-    time.sleep(1)
-    st.experimental_rerun()
+# Exibe tempo desde a última atualização
+segundos = int(time.time() - st.session_state["ultimo_update"])
+st.caption(f"⏳ Atualização automática a cada 60s. Última: {segundos} segundos atrás.")
