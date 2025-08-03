@@ -89,7 +89,7 @@ filtros_diferentes = filtros_atuais != st.session_state["filtros_anteriores"]
 if filtros_diferentes:
     carregar_automatico = True
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)  # <= ATUALIZAÇÃO AQUI
 def consultar_api(params):
     url = "https://api-logame-analytics.logame.app/api/affiliate-report"
     response = requests.get(url, params=params)
