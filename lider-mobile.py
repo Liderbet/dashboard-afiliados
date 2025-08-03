@@ -5,7 +5,11 @@ import io
 import pytz
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Dashboard Mobile - Logame", layout="centered")
+st.set_page_config(page_title="Dashboard Mobile - LiderBet", layout="centered")
+
+# Para layout mais espaçado em desktop:
+# st.set_page_config(page_title="Dashboard Desktop", layout="wide")
+
 
 st.title("📊 Dashboard Mobile")
 
