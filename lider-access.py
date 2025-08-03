@@ -5,11 +5,14 @@ import io
 import pytz
 from datetime import datetime, timedelta
 
-# ======== ESCOLHA FORÇADA DE LAYOUT ========
-if "layout_escolhido" not in st.session_state:
-    st.session_state.layout_escolhido = None
+# ======== ESCOLHA DE LAYOUT COM URL + SESSION_STATE ========
+params = st.query_params
+layout_param = params.get("layout", None)
 
-if st.session_state.layout_escolhido is None:
+if "layout_escolhido" not in st.session_state:
+    st.session_state.layout_escolhido = layout_param
+
+if not st.session_state.layout_escolhido:
     st.title("🎯 Escolha o Layout")
 
     col1, col2 = st.columns(2)
