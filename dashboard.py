@@ -2,29 +2,29 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-from datetime import datetime
+import pytz
+import time
+from datetime import datetime, timedelta
 
-# Configurações de login
+# Login fixo
 USUARIO_CORRETO = "eric"
 SENHA_CORRETA = "Lider@2025"
 
-# Página com layout largo
 st.set_page_config(page_title="Dashboard Protegida", layout="wide")
 
-# Sessão de autenticação
+# Função de autenticação
 def autenticar():
     st.title("🔐 Login necessário")
     usuario = st.text_input("Usuário")
     senha = st.text_input("Senha", type="password")
-
     if st.button("Entrar"):
         if usuario == USUARIO_CORRETO and senha == SENHA_CORRETA:
-            st.success("Login realizado com sucesso!")
             st.session_state["autenticado"] = True
+            st.rerun()
         else:
             st.error("Usuário ou senha incorretos.")
 
-# Verifica se o usuário está autenticado
+# Verifica autenticação
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 
@@ -32,32 +32,65 @@ if not st.session_state["autenticado"]:
     autenticar()
     st.stop()
 
-# Conteúdo principal
+# Conteúdo da dashboard
 st.title("📈 Dashboard Protegida - Afiliados Logame Analytics")
 
+# Timezone Brasil
+fuso_brasilia = pytz.timezone("America/Sao_Paulo")
+hoje = datetime.now(fuso_brasilia).date()
+
 # Filtros
-st.sidebar.header("Filtros")
-start_date = st.sidebar.date_input("Data Inicial")
-end_date = st.sidebar.date_input("Data Final")
-campaing_name = st.sidebar.text_input("Nome da campanha", "")
-affiliate_id = st.sidebar.text_input("Affiliate ID (opcional)", "")
+st.sidebar.header("Período do Relatório")
+opcao_periodo = st.sidebar.radio(
+    "Escolha o intervalo:",
+    ["Hoje", "Últimos 7 dias", "Últimos 15 dias", "Últimos 30 dias", "Personalizado"],
+    index=0
+)
+
+# Cálculo de datas
+if opcao_periodo == "Hoje":
+    data_inicial = data_final = hoje
+elif opcao_periodo == "Últimos 7 dias":
+    data_inicial = hoje - timedelta(days=6)
+    data_final = hoje
+elif opcao_periodo == "Últimos 15 dias":
+    data_inicial = hoje - timedelta(days=14)
+    data_final = hoje
+elif opcao_periodo == "Últimos 30 dias":
+    data_inicial = hoje - timedelta(days=29)
+    data_final = hoje
+else:
+    data_inicial = st.sidebar.date_input("Data Inicial", value=hoje - timedelta(days=7))
+    data_final = st.sidebar.date_input("Data Final", value=hoje)
+
+# Afiliado fixo atualizado
+affiliate_id = "464361"
 mark = "liderbet"
+campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
 
-# Botão de consulta
-if st.sidebar.button("🔍 Consultar API"):
-    with st.spinner("Consultando dados..."):
+# Info
+st.caption(f"🗓️ Período: `{data_inicial}` a `{data_final}`")
+st.caption(f"🔗 Afiliado fixo: `{affiliate_id}` | Marca: `{mark}`")
 
-        # Parâmetros
+# Botão manual e atualização automática
+atualizar_manual = st.button("🔄 Atualizar agora")
+tempo_restante = st.empty()
+rodar = atualizar_manual or st.session_state.get("ultimo_update", 0) + 60 < time.time()
+
+# Consulta à API
+if rodar:
+    st.session_state["ultimo_update"] = time.time()
+
+    with st.spinner("Consultando API..."):
         params = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "campaing_name": campaing_name,
+            "start_date": str(data_inicial),
+            "end_date": str(data_final),
+            "affiliate_id": affiliate_id,
             "mark": mark
         }
-        if affiliate_id:
-            params["affiliate_id"] = affiliate_id
+        if campaing_name:
+            params["campaing_name"] = campaing_name
 
-        # Requisição
         url = "https://api-logame-analytics.logame.app/api/affiliate-report"
         response = requests.get(url, params=params)
 
@@ -68,14 +101,13 @@ if st.sidebar.button("🔍 Consultar API"):
             if not df.empty:
                 st.success("✅ Dados carregados com sucesso!")
 
-                # TOTALIZADOR
+                # TOTALIZADORES
                 st.subheader("📌 Totais")
                 colunas_numericas = df.select_dtypes(include='number').columns.tolist()
                 if colunas_numericas:
                     totais = df[colunas_numericas].sum()
                     col1, col2, col3, col4 = st.columns(4)
-                    colunas = totais.index.tolist()
-                    for i, coluna in enumerate(colunas):
+                    for i, coluna in enumerate(totais.index):
                         valor = totais[coluna]
                         valor_formatado = f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                         if i % 4 == 0:
@@ -91,13 +123,12 @@ if st.sidebar.button("🔍 Consultar API"):
                 st.subheader("📋 Tabela de Dados")
                 st.dataframe(df)
 
-                # EXPORTAÇÃO PARA EXCEL
+                # EXPORTAÇÃO
                 st.subheader("📥 Exportar")
                 excel_buffer = io.BytesIO()
                 df.to_excel(excel_buffer, index=False, engine='openpyxl')
                 excel_buffer.seek(0)
-
-                nome_arquivo = f"relatorio_logame_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                nome_arquivo = f"relatorio_logame_{datetime.now(fuso_brasilia).strftime('%Y%m%d_%H%M%S')}.xlsx"
                 st.download_button(
                     label="📥 Baixar Excel",
                     data=excel_buffer,
@@ -110,7 +141,12 @@ if st.sidebar.button("🔍 Consultar API"):
                     st.subheader("📊 Gráfico de Colunas")
                     st.bar_chart(df[colunas_numericas])
             else:
-                st.warning("⚠ Nenhum dado encontrado para os filtros escolhidos.")
+                st.warning("⚠ Nenhum dado encontrado.")
         else:
             st.error(f"❌ Erro {response.status_code}: {response.text}")
 
+# Contador de autoatualização
+for i in range(60, 0, -1):
+    tempo_restante.markdown(f"⏳ Atualizando em **{i} segundos**... ou clique em **🔄 Atualizar agora**")
+    time.sleep(1)
+    st.experimental_rerun()
