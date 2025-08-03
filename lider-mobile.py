@@ -5,7 +5,7 @@ import io
 import pytz
 from datetime import datetime, timedelta
 
-# ======== LAYOUT MOBILE FIXO ========
+# ======== LAYOUT FIXO PARA MOBILE ========
 st.set_page_config(page_title="Dashboard Logame (Mobile)", layout="centered")
 
 # ======== CABEÇALHO ========
@@ -41,15 +41,11 @@ affiliate_id = st.sidebar.text_input("Affiliate ID", value="468543")
 campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
 mark = "liderbet"
 
-# Previne erro de API sem parâmetros obrigatórios
 if not affiliate_id and not campaing_name:
     st.warning("⚠️ Informe pelo menos um Affiliate ID ou uma Campanha.")
     st.stop()
 
-# ======== BOTÃO MANUAL E CACHE ========
-if "filtros_anteriores" not in st.session_state:
-    st.session_state.filtros_anteriores = {}
-
+# ======== CONSULTA E ATUALIZAÇÃO ========
 filtros_atuais = {
     "start_date": str(data_inicial),
     "end_date": str(data_final),
@@ -60,6 +56,15 @@ filtros_atuais = {
 
 atualizar = st.button("🔄 Atualizar agora")
 
+carregar_automatico = False
+if "filtros_anteriores" not in st.session_state:
+    st.session_state.filtros_anteriores = {}
+    carregar_automatico = True
+
+filtros_diferentes = filtros_atuais != st.session_state["filtros_anteriores"]
+if filtros_diferentes:
+    carregar_automatico = True
+
 @st.cache_data(show_spinner=False)
 def consultar_api(params):
     url = "https://api-logame-analytics.logame.app/api/affiliate-report"
@@ -69,15 +74,14 @@ def consultar_api(params):
     else:
         return pd.DataFrame()
 
-filtros_diferentes = filtros_atuais != st.session_state["filtros_anteriores"]
-if atualizar or filtros_diferentes:
+if atualizar or carregar_automatico:
     st.session_state["filtros_anteriores"] = filtros_atuais
     with st.spinner("🔄 Consultando API..."):
         df = consultar_api(filtros_atuais)
 else:
     df = consultar_api(st.session_state["filtros_anteriores"])
 
-# ======== EXIBIÇÃO DE RESULTADOS ========
+# ======== EXIBIÇÃO DOS DADOS ========
 st.caption(f"🗓️ Período: `{data_inicial}` a `{data_final}`")
 st.caption(f"🧾 Afiliado: `{affiliate_id}` | Marca: `{mark}`")
 
