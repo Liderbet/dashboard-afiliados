@@ -5,26 +5,28 @@ import io
 import pytz
 from datetime import datetime, timedelta
 
-# ======== ESCOLHA DE LAYOUT ========
-params = st.query_params
-layout_param = params.get("layout", "desktop")
+# ======== ESCOLHA FORÇADA DE LAYOUT ========
+if "layout_escolhido" not in st.session_state:
+    st.session_state.layout_escolhido = None
 
-if layout_param not in ["desktop", "mobile"]:
+if st.session_state.layout_escolhido is None:
     st.title("🎯 Escolha o Layout")
 
     col1, col2 = st.columns(2)
     with col1:
         if st.button("💻 Versão Desktop"):
             st.query_params["layout"] = "desktop"
+            st.session_state.layout_escolhido = "desktop"
             st.rerun()
     with col2:
         if st.button("📱 Versão Mobile"):
             st.query_params["layout"] = "mobile"
+            st.session_state.layout_escolhido = "mobile"
             st.rerun()
 
     st.stop()
 
-layout_final = "wide" if layout_param == "desktop" else "centered"
+layout_final = "wide" if st.session_state.layout_escolhido == "desktop" else "centered"
 st.set_page_config(page_title="Dashboard Logame", layout=layout_final)
 
 # ======== CABEÇALHO ========
