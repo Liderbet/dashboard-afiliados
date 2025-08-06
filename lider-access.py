@@ -61,22 +61,22 @@ else:
     data_inicial = st.sidebar.date_input("Data Inicial", value=hoje - timedelta(days=7))
     data_final = st.sidebar.date_input("Data Final", value=hoje)
 
-affiliate_id = st.sidebar.text_input("Affiliate ID", value="468543")
+# Campos de filtros
+affiliate_id = st.sidebar.text_input("Affiliate ID (deixe em branco para consultar todos)", value="")
 campaing_name = st.sidebar.text_input("Campanha (opcional)", "")
 mark = "liderbet"
 
-if not affiliate_id and not campaing_name:
-    st.warning("⚠️ Informe pelo menos um Affiliate ID ou uma Campanha.")
-    st.stop()
-
 # ======== CONSULTA E ATUALIZAÇÃO ========
+# Montar os filtros dinamicamente
 filtros_atuais = {
     "start_date": str(data_inicial),
     "end_date": str(data_final),
-    "affiliate_id": affiliate_id,
-    "campaing_name": campaing_name,
     "mark": mark,
 }
+if affiliate_id.strip():
+    filtros_atuais["affiliate_id"] = affiliate_id.strip()
+if campaing_name.strip():
+    filtros_atuais["campaing_name"] = campaing_name.strip()
 
 atualizar = st.button("🔄 Atualizar agora")
 
@@ -89,7 +89,7 @@ filtros_diferentes = filtros_atuais != st.session_state["filtros_anteriores"]
 if filtros_diferentes:
     carregar_automatico = True
 
-@st.cache_data(ttl=60, show_spinner=False)  # <= ATUALIZAÇÃO AQUI
+@st.cache_data(ttl=60, show_spinner=False)
 def consultar_api(params):
     url = "https://api-logame-analytics.logame.app/api/affiliate-report"
     response = requests.get(url, params=params)
@@ -107,7 +107,12 @@ else:
 
 # ======== EXIBIÇÃO DE RESULTADOS ========
 st.caption(f"🗓️ Período: `{data_inicial}` a `{data_final}`")
-st.caption(f"🧾 Afiliado: `{affiliate_id}` | Marca: `{mark}`")
+if affiliate_id:
+    st.caption(f"🧾 Afiliado: `{affiliate_id}` | Marca: `{mark}`")
+elif campaing_name:
+    st.caption(f"🎯 Campanha: `{campaing_name}` | Marca: `{mark}`")
+else:
+    st.caption(f"🔎 Consulta geral | Marca: `{mark}`")
 
 if not df.empty:
     st.success("✅ Dados carregados com sucesso!")
