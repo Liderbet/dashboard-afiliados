@@ -7,8 +7,8 @@ import time
 from datetime import datetime, timedelta
 
 # Login fixo
-USUARIO_CORRETO = "eric"
-SENHA_CORRETA = "Lider@2025"
+USUARIO_CORRETO = "conecta"
+SENHA_CORRETA = "Conecta@2025"
 
 st.set_page_config(page_title="Dashboard Protegida", layout="wide")
 
@@ -152,3 +152,4 @@ if rodar:
 # Exibe tempo desde a última atualização
 segundos = int(time.time() - st.session_state["ultimo_update"])
 st.caption(f"⏳ Atualização automática a cada 60s. Última: {segundos} segundos atrás.")
+
